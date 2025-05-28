@@ -66,6 +66,15 @@ def format_worksheet(worksheet, df):
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = NORMAL_BORDER
     
+    # 获取每列的最大内容长度
+    max_lengths = {'A': 0, 'B': 0, 'C': 0}
+    for row in worksheet.iter_rows(min_row=3, max_row=worksheet.max_row):
+        for idx, cell in enumerate(row):
+            if cell.value:
+                col_letter = get_column_letter(idx + 1)
+                content_length = len(str(cell.value))
+                max_lengths[col_letter] = max(max_lengths[col_letter], content_length)
+    
     # 获取所有大类（第一列非空值）
     categories = []
     last_category = None
@@ -85,18 +94,35 @@ def format_worksheet(worksheet, df):
             if row[1].value:
                 row[1].alignment = Alignment(horizontal='left', vertical='center', indent=1)
         
-        # 设置规格值列的对齐方式
+        # 设置规格值列的对齐方式和自动换行
         if row[2].value:
-            row[2].alignment = Alignment(horizontal='left', vertical='center')
+            row[2].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
         
         # 添加边框
         for cell in row:
             cell.border = NORMAL_BORDER
     
-    # 调整列宽
-    column_widths = {'A': 15, 'B': 25, 'C': 50}  # 设置固定列宽
-    for column, width in column_widths.items():
-        worksheet.column_dimensions[column].width = width
+    # 计算并设置列宽 (考虑A4纸宽度约为85个字符)
+    # A4纸宽度约为210mm，Excel中1个字符宽度约为2.47mm
+    # 因此A4纸可容纳约85个字符
+    total_width = 85  # A4纸宽度（以字符为单位）
+    
+    # 根据内容长度计算每列的相对宽度
+    a_width = min(max_lengths['A'] * 1.2, 15)  # 大类列宽
+    b_width = min(max_lengths['B'] * 1.2, 25)  # 规格项列宽
+    c_width = total_width - a_width - b_width   # 剩余宽度给规格值列
+    
+    # 设置列宽
+    worksheet.column_dimensions['A'].width = a_width
+    worksheet.column_dimensions['B'].width = b_width
+    worksheet.column_dimensions['C'].width = c_width
+    
+    # 设置打印相关属性
+    worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
+    worksheet.page_setup.orientation = worksheet.ORIENTATION_PORTRAIT
+    worksheet.page_setup.fitToPage = True
+    worksheet.page_setup.fitToHeight = False
+    worksheet.page_setup.fitToWidth = 1
     
     # 设置行高
     worksheet.row_dimensions[1].height = 25  # 标题行高
