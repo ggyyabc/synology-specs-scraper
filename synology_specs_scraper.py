@@ -8,27 +8,40 @@ import re
 from openpyxl.styles import Font
 from openpyxl import load_workbook
 
+# 版本信息
+__version__ = "1.2"
+__author__ = "Claude"
+
 EXCEL_FILE = "群晖产品资料汇总.xlsx"
 
 def validate_model_number(model):
     """验证产品型号格式
     支持的格式示例：
-    - DS3622xs+
-    - RS4021xs+
-    - DS220+
-    - FS6400
-    - RS3621RPxs
-    - SA3610
-    - DS620slim
-    - UC3400
-    - SA3400D
-    - SA3200D
+    存储扩充设备：
+    - RX1217sas, RX1217, RX418 (机架式扩展设备)
+    - DX1215, DX517 (桌面式扩展设备)
+    - FX2421, FX2421rp (全闪存扩展设备)
+    
+    PCIe 扩充卡：
+    - E10G18-T2, E10G18-T1
+    - M2D20, M2D18
+    - FXC17, FXC18
     """
-    # 基本格式检查 - 支持更多格式
-    pattern = r'^(DS|RS|FS|SA|HD|DVA|UC)\d{3,4}(RP)?(xs\+|xs|\+|slim|play|j|II|D)?$'
-    if not re.match(pattern, model):
-        return False, "产品型号格式不正确。正确格式示例：DS3622xs+, RS3621RPxs, DS620slim, UC3400, SA3400D"
-    return True, ""
+    # 基本格式检查 - 支持配件产品线
+    patterns = [
+        # 存储扩充设备
+        r'^(RX|DX|FX)\d{3,4}(sas|rp)?$',
+        # PCIe 扩充卡
+        r'^[A-Z]\d{1,2}[A-Z]\d{2}(-T\d)?$',
+        # 原有的 NAS/SAN 系列保持不变
+        r'^(DS|RS|FS|SA|HD|DVA|UC)\d{3,4}(RP)?(xs\+|xs|\+|slim|play|j|II|D)?$'
+    ]
+    
+    for pattern in patterns:
+        if re.match(pattern, model):
+            return True, ""
+    
+    return False, "产品型号格式不正确。正确格式示例：RX1217sas, DX517, E10G18-T2, M2D20"
 
 def get_product_specs(model):
     # 首先验证产品型号格式
@@ -36,7 +49,7 @@ def get_product_specs(model):
     if not is_valid:
         return False, error_message
 
-    # 构建URL - 直接使用原始型号
+    # 构建URL - 直接使用完整路径
     base_url = "https://www.synology.cn/zh-cn/products/"
     url = base_url + model + "#specs"
     
@@ -55,7 +68,6 @@ def get_product_specs(model):
         specs_data = []
         hardware_section_found = False
         last_spec_item = None  # 用于记录上一个规格项
-        section_title = ""  # 用于记录当前部分的标题
         
         # 查找所有表格
         tables = soup.find_all('table')
@@ -66,18 +78,18 @@ def get_product_specs(model):
             prev_elem = table.find_previous(['h2', 'h3', 'h4', 'h5', 'div'])
             if prev_elem:
                 title_text = prev_elem.get_text(strip=True)
-                # 只处理硬件相关的表格
-                if any(keyword in title_text.lower() for keyword in ['硬件', 'hardware']):
+                # 处理规格相关的表格
+                if any(keyword in title_text.lower() for keyword in ['硬件', 'hardware', '规格', 'specifications']):
                     hardware_section_found = True
-                    section_title = title_text  # 保存标题，但不添加到数据中
+                    section_title = title_text
                     last_spec_item = None  # 重置上一个规格项
                 elif hardware_section_found:
-                    # 如果已经处理完硬件部分，就退出循环
+                    # 如果已经处理完规格部分，就退出循环
                     break
                 else:
                     continue
             
-            # 如果不在硬件部分，跳过此表格
+            # 如果不在规格部分，跳过此表格
             if not hardware_section_found:
                 continue
             
@@ -115,12 +127,12 @@ def get_product_specs(model):
                         specs_data.append([spec_name, spec_value, spec_note])
         
         if not specs_data:
-            return False, f"未找到产品 {model} 的硬件规格信息。URL: {url}"
+            return False, f"未找到产品 {model} 的规格信息。URL: {url}"
             
         # 将数据转换为DataFrame
         df = pd.DataFrame(specs_data, columns=['规格项', '规格值', '技术指标'])
         
-        # 保存到Excel，设置列宽自适应和格式
+        # 保存到Excel，设置格式
         try:
             if os.path.exists(EXCEL_FILE):
                 with pd.ExcelWriter(EXCEL_FILE, mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
@@ -131,7 +143,7 @@ def get_product_specs(model):
                     
                     # 合并第一行单元格并添加标题
                     worksheet.merge_cells('A1:C1')
-                    worksheet['A1'] = f'群晖{model}硬件规格'
+                    worksheet['A1'] = f'群晖{model}规格'
                     
                     # 创建粗体字体样式
                     bold_font = Font(bold=True)
@@ -151,7 +163,7 @@ def get_product_specs(model):
                     
                     # 合并第一行单元格并添加标题
                     worksheet.merge_cells('A1:C1')
-                    worksheet['A1'] = f'群晖{model}硬件规格'
+                    worksheet['A1'] = f'群晖{model}规格'
                     
                     # 创建粗体字体样式
                     bold_font = Font(bold=True)
@@ -166,7 +178,7 @@ def get_product_specs(model):
         except Exception as e:
             return False, f"保存Excel文件时出错: {str(e)}"
         
-        return True, f"硬件规格信息已保存到 {EXCEL_FILE} 的 {model} 工作表中"
+        return True, f"规格信息已保存到 {EXCEL_FILE} 的 {model} 工作表中"
         
     except requests.exceptions.RequestException as e:
         return False, f"网络请求错误: {str(e)}\nURL: {url}"
@@ -186,7 +198,7 @@ def check_model_exists(model):
 class ProductSpecsApp:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("群晖产品规格查询")
+        self.root.title(f"群晖产品规格查询 V{__version__}")
         self.root.geometry("400x250")
         self.setup_ui()
         self.center_window()
