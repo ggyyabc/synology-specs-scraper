@@ -16,8 +16,7 @@ __author__ = "Claude"
 EXCEL_FILE = "群晖产品资料汇总.xlsx"
 
 # 定义样式常量
-HEADER_FILL = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
-ALT_ROW_FILL = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
+HEADER_FILL = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
 BORDER_STYLE = Side(style='thin', color="000000")
 NORMAL_BORDER = Border(left=BORDER_STYLE, right=BORDER_STYLE, top=BORDER_STYLE, bottom=BORDER_STYLE)
 
@@ -57,52 +56,52 @@ def format_worksheet(worksheet, df):
     # 设置标题行格式（第1行）
     title_cell = worksheet['A1']
     title_cell.font = Font(bold=True, size=12)
-    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    title_cell.alignment = Alignment(horizontal='right', vertical='center')
     
     # 设置列标题行格式（第2行）
     header_row = worksheet[2]
     for cell in header_row:
         cell.font = Font(bold=True)
         cell.fill = HEADER_FILL
-        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = NORMAL_BORDER
     
-    # 设置数据行格式
+    # 获取所有大类（第一列非空值）
+    categories = []
+    last_category = None
+    category_rows = []  # 存储每个大类的起始行号
+    
     for row_idx, row in enumerate(worksheet.iter_rows(min_row=3, max_row=worksheet.max_row), start=3):
-        # 交替行底色
-        fill = ALT_ROW_FILL if row_idx % 2 == 0 else None
+        cell_value = row[0].value
+        if cell_value:  # 如果第一列有值，说明是新的大类
+            categories.append(cell_value)
+            category_rows.append(row_idx)
+            last_category = cell_value
+            # 设置大类单元格格式
+            row[0].font = Font(bold=True)
+            row[0].alignment = Alignment(horizontal='left', vertical='center')
+        else:
+            # 对于大类下的子项，缩进第二列
+            if row[1].value:
+                row[1].alignment = Alignment(horizontal='left', vertical='center', indent=1)
         
-        for col_idx, cell in enumerate(row):
-            # 设置边框
+        # 设置规格值列的对齐方式
+        if row[2].value:
+            row[2].alignment = Alignment(horizontal='left', vertical='center')
+        
+        # 添加边框
+        for cell in row:
             cell.border = NORMAL_BORDER
-            
-            # 设置填充色
-            if fill:
-                cell.fill = fill
-            
-            # 设置对齐方式
-            if col_idx == 0:  # 规格项列
-                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
-            else:  # 规格值和技术指标列
-                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
     
     # 调整列宽
-    for idx, column in enumerate(['A', 'B', 'C']):  # 固定处理三列：规格项、规格值、技术指标
-        max_length = 0
-        # 跳过第一行（合并的标题行）
-        for cell in worksheet[column][1:]:  # 从第二行开始
-            if cell.value:  # 只处理有值的单元格
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-        
-        # 设置列宽（考虑中文字符）
-        adjusted_width = max_length * 1.5
-        adjusted_width = min(adjusted_width, 50)  # 设置最大列宽
-        adjusted_width = max(adjusted_width, 15)  # 设置最小列宽
-        worksheet.column_dimensions[column].width = adjusted_width
+    column_widths = {'A': 15, 'B': 25, 'C': 50}  # 设置固定列宽
+    for column, width in column_widths.items():
+        worksheet.column_dimensions[column].width = width
+    
+    # 设置行高
+    worksheet.row_dimensions[1].height = 25  # 标题行高
+    for row in range(2, worksheet.max_row + 1):
+        worksheet.row_dimensions[row].height = 20  # 数据行高
 
 def get_product_specs(model):
     # 首先验证产品型号格式
@@ -204,7 +203,7 @@ def get_product_specs(model):
                     
                     # 合并第一行单元格并添加标题
                     worksheet.merge_cells('A1:C1')
-                    worksheet['A1'] = f'群晖{model}规格'
+                    worksheet['A1'] = f'群晖{model} 硬件规格'
                     
                     # 应用格式化
                     format_worksheet(worksheet, df)
@@ -217,7 +216,7 @@ def get_product_specs(model):
                     
                     # 合并第一行单元格并添加标题
                     worksheet.merge_cells('A1:C1')
-                    worksheet['A1'] = f'群晖{model}规格'
+                    worksheet['A1'] = f'群晖{model} 硬件规格'
                     
                     # 应用格式化
                     format_worksheet(worksheet, df)
