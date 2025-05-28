@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+
+# Excel
+*.xlsx
+!群晖产品资料汇总_template.xlsx
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store 
