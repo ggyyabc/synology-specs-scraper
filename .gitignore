@@ -2,15 +2,26 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
 venv/
+ENV/
 
 # Excel
 *.xlsx
 !群晖产品资料汇总_template.xlsx
 
 # IDE
-.vscode/
 .idea/
+.vscode/
+*.swp
+*.swo
 
 # macOS
-.DS_Store 
+.DS_Store
+
+# Project specific
+产品图片/
+群晖产品资料汇总.xlsx
+*.bak
+*.tmp 

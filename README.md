@@ -1,6 +1,6 @@
 # 群晖产品规格查询工具
 
-[![Version](https://img.shields.io/badge/Version-V1.2-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1.2)
+[![Version](https://img.shields.io/badge/Version-V1.3-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1.3)
 [![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -10,6 +10,7 @@
 
 - 🔍 自动从群晖官网获取产品规格信息
 - 📊 将数据保存为结构化的Excel格式
+- 🖼️ 自动下载并保存产品图片
 - 🔄 支持批量查询多个产品型号
 - ⚡ 简单易用的图形界面
 - 💾 自动保存查询结果
@@ -28,12 +29,32 @@
 
 ## 版本历史
 
+### V1.3 (2024-03-xx)
+- ✨ 添加产品图片功能：
+  - 自动下载并保存原始图片到"产品图片"文件夹
+  - 在Excel中显示缩放后的图片（140px宽度）
+  - 图片放置在A1单元格内
+- 💅 优化Excel格式：
+  - 第一行固定高度为120
+  - 标题使用24号微软雅黑字体，加粗斜体，右对齐
+  - 优化列宽和图片显示效果
+- 🔧 改进错误处理：
+  - 完善图片下载和处理的错误检查
+  - 优化文件保存的错误处理
+  - 添加详细的错误提示信息
+
 ### V1.2 (2024-03-xx)
 - 🔧 修复产品规格页面URL格式问题
 - ✨ 统一所有产品的URL路径格式
 - 📊 优化规格数据提取逻辑
 - 🎯 添加版本信息显示
 - 🔄 增加对新格式PCIe扩充卡型号的支持（如 E25G30-F2）
+- 💅 添加Excel表格自动排版功能：
+  - 自动调整列宽
+  - 设置交替行底色
+  - 添加单元格边框
+  - 优化文本对齐和换行
+  - 美化标题和表头样式
 
 ### V1.1 (2024-03-xx)
 - ✨ 增加对更多产品型号的支持

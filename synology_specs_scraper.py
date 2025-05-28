@@ -8,12 +8,20 @@ import re
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
+from openpyxl.drawing.image import Image
+from PIL import Image as PILImage
+from io import BytesIO
+import urllib.parse
+import tempfile
+from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker
+from openpyxl.utils.units import pixels_to_EMU
 
 # 版本信息
-__version__ = "1.2"
+__version__ = "1.3"
 __author__ = "Claude"
 
 EXCEL_FILE = "群晖产品资料汇总.xlsx"
+IMAGES_DIR = "产品图片"  # 图片保存目录
 
 # 定义样式常量
 HEADER_FILL = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
@@ -80,11 +88,130 @@ def calculate_row_height(row):
     # 基础行高15，每行增加15
     return max(20, 15 * max_lines)
 
-def format_worksheet(worksheet, df):
+def ensure_dir(directory):
+    """确保目录存在，如果不存在则创建"""
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+def make_background_transparent(img):
+    """将图片的白色背景转换为透明"""
+    # 转换图片为RGBA模式（支持透明通道）
+    img = img.convert("RGBA")
+    data = img.getdata()
+    
+    # 创建新的像素数据，将接近白色的像素转换为透明
+    new_data = []
+    for item in data:
+        # 检查像素是否接近白色（RGB值都大于240）
+        if item[0] > 240 and item[1] > 240 and item[2] > 240:
+            # 将白色像素转换为完全透明
+            new_data.append((255, 255, 255, 0))
+        else:
+            new_data.append(item)
+    
+    # 更新图片数据
+    img.putdata(new_data)
+    return img
+
+def download_and_resize_image(model):
+    """下载并调整产品图片大小，同时保存到本地"""
+    # 确保图片目录存在
+    ensure_dir(IMAGES_DIR)
+    
+    # 构建图片URL
+    encoded_model = urllib.parse.quote(model)
+    image_url = f"https://www.synology.cn/api/products/getPhoto?product={encoded_model}&type=img&sort=2"
+    
+    try:
+        # 下载图片
+        response = requests.get(image_url, timeout=10)
+        
+        # 检查响应状态码
+        if response.status_code != 200:
+            print(f"下载图片失败，状态码: {response.status_code}")
+            return None
+            
+        # 检查内容类型
+        content_type = response.headers.get('content-type', '')
+        if not content_type.startswith('image/'):
+            print(f"返回的内容不是图片: {content_type}")
+            return None
+            
+        # 检查内容长度
+        if len(response.content) < 100:
+            print("返回的图片数据异常")
+            return None
+        
+        try:
+            # 使用PIL打开图片并验证
+            img = PILImage.open(BytesIO(response.content))
+            img.verify()
+            
+            # 重新打开图片（verify后需要重新打开）
+            img = PILImage.open(BytesIO(response.content))
+            
+            # 检查图片尺寸
+            if img.size[0] < 10 or img.size[1] < 10:
+                print("图片尺寸异常")
+                return None
+            
+            # 保存原始图片到本地
+            original_path = os.path.join(IMAGES_DIR, f"{model}.png")
+            img.save(original_path, format='PNG')
+            print(f"原始图片已保存到: {original_path}")
+            
+            # 计算等比例缩放后的高度（Excel中显示用）
+            width = 140  # 调整Excel中显示的图片宽度
+            ratio = width / float(img.size[0])
+            height = int(float(img.size[1]) * ratio)
+            
+            # 调整图片大小
+            img_resized = img.resize((width, height), PILImage.Resampling.LANCZOS)
+            
+            # 将调整后的图片保存到内存中
+            img_byte_arr = BytesIO()
+            img_resized.save(img_byte_arr, format='PNG')
+            img_byte_arr.seek(0)
+            
+            return img_byte_arr, height  # 返回图片数据和高度
+            
+        except (IOError, OSError) as e:
+            print(f"处理图片时出错: {str(e)}")
+            return None
+            
+    except requests.exceptions.RequestException as e:
+        print(f"下载图片时出错: {str(e)}")
+        return None
+    except Exception as e:
+        print(f"发生未知错误: {str(e)}")
+        return None
+
+def format_worksheet(worksheet, df, model):
     """设置工作表格式"""
+    # 设置第一行高度为固定值
+    worksheet.row_dimensions[1].height = 120
+    
+    # 下载并插入产品图片
+    img_result = download_and_resize_image(model)
+    if img_result:
+        img_data, img_height = img_result
+        try:
+            # 在A1单元格插入图片
+            img = Image(img_data)
+            # 设置图片位置（A1单元格内）
+            img.anchor = 'A1'
+            worksheet.add_image(img)
+        except Exception as e:
+            print(f"插入图片时出错: {str(e)}")
+    
     # 设置标题行格式（第1行）
     title_cell = worksheet['A1']
-    title_cell.font = Font(bold=True, size=12)
+    title_cell.font = Font(
+        name='微软雅黑',  # 设置字体为微软雅黑
+        size=24,         # 设置字号为24
+        bold=True,       # 加粗
+        italic=True      # 斜体
+    )
     title_cell.alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
     
     # 设置列标题行格式（第2行）
@@ -96,18 +223,17 @@ def format_worksheet(worksheet, df):
         cell.border = NORMAL_BORDER
     
     # 设置固定列宽
-    worksheet.column_dimensions['A'].width = 9   # 大类列
+    worksheet.column_dimensions['A'].width = 20  # 调整A列宽度
     worksheet.column_dimensions['B'].width = 30  # 规格项列
     worksheet.column_dimensions['C'].width = 73  # 规格值列
+    
+    # 设置表头行高
+    worksheet.row_dimensions[2].height = 20  # 表头行高固定
     
     # 获取所有大类（第一列非空值）
     categories = []
     last_category = None
     category_rows = []  # 存储每个大类的起始行号
-    
-    # 设置标题行高
-    worksheet.row_dimensions[1].height = 25
-    worksheet.row_dimensions[2].height = 20  # 表头行高固定
     
     # 处理数据行
     for row_idx, row in enumerate(worksheet.iter_rows(min_row=3, max_row=worksheet.max_row), start=3):
@@ -245,7 +371,23 @@ def get_product_specs(model):
         
         # 保存到Excel，设置格式
         try:
+            # 如果文件存在且可能损坏，先尝试创建备份
             if os.path.exists(EXCEL_FILE):
+                try:
+                    # 尝试打开现有文件以验证其完整性
+                    wb = load_workbook(EXCEL_FILE)
+                    wb.close()
+                except Exception as e:
+                    # 如果文件损坏，创建备份并创建新文件
+                    backup_file = f"{EXCEL_FILE}.bak"
+                    if os.path.exists(backup_file):
+                        os.remove(backup_file)
+                    os.rename(EXCEL_FILE, backup_file)
+                    print(f"原文件已损坏，已创建备份：{backup_file}")
+            
+            # 创建新的Excel文件或追加到现有文件
+            if os.path.exists(EXCEL_FILE):
+                # 使用with语句确保文件正确关闭
                 with pd.ExcelWriter(EXCEL_FILE, mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
                     # 添加一个空行作为第一行，从第二行开始写入数据
                     df.to_excel(writer, sheet_name=model, index=False, startrow=1)
@@ -257,9 +399,10 @@ def get_product_specs(model):
                     worksheet['A1'] = f'群晖{model} 硬件规格'
                     
                     # 应用格式化
-                    format_worksheet(worksheet, df)
+                    format_worksheet(worksheet, df, model)
             else:
-                with pd.ExcelWriter(EXCEL_FILE) as writer:
+                # 创建新文件
+                with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl') as writer:
                     # 添加一个空行作为第一行，从第二行开始写入数据
                     df.to_excel(writer, sheet_name=model, index=False, startrow=1)
                     # 获取当前工作表
@@ -270,10 +413,14 @@ def get_product_specs(model):
                     worksheet['A1'] = f'群晖{model} 硬件规格'
                     
                     # 应用格式化
-                    format_worksheet(worksheet, df)
+                    format_worksheet(worksheet, df, model)
                     
         except Exception as e:
-            return False, f"保存Excel文件时出错: {str(e)}"
+            error_msg = str(e)
+            # 如果是文件被占用的错误，给出更友好的提示
+            if "Permission denied" in error_msg or "being used by another process" in error_msg:
+                return False, f"无法保存Excel文件，请确保文件未被其他程序打开: {error_msg}"
+            return False, f"保存Excel文件时出错: {error_msg}"
         
         return True, f"规格信息已保存到 {EXCEL_FILE} 的 {model} 工作表中"
         
