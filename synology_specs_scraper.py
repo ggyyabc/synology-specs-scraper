@@ -24,6 +24,7 @@ def validate_model_number(model):
     
     PCIe 扩充卡：
     - E10G18-T2, E10G18-T1
+    - E25G30-F2, E25G21-F2
     - M2D20, M2D18
     - FXC17, FXC18
     """
@@ -31,8 +32,9 @@ def validate_model_number(model):
     patterns = [
         # 存储扩充设备
         r'^(RX|DX|FX)\d{3,4}(sas|rp)?$',
-        # PCIe 扩充卡
-        r'^[A-Z]\d{1,2}[A-Z]\d{2}(-T\d)?$',
+        # PCIe 扩充卡 - 更新格式支持
+        r'^[A-Z]\d{2}[A-Z]\d{2}-[A-Z]\d{1,2}$',  # 新格式：E25G30-F2
+        r'^[A-Z]\d{1,2}[A-Z]\d{2}(-T\d)?$',      # 旧格式：E10G18-T2
         # 原有的 NAS/SAN 系列保持不变
         r'^(DS|RS|FS|SA|HD|DVA|UC)\d{3,4}(RP)?(xs\+|xs|\+|slim|play|j|II|D)?$'
     ]
@@ -41,7 +43,7 @@ def validate_model_number(model):
         if re.match(pattern, model):
             return True, ""
     
-    return False, "产品型号格式不正确。正确格式示例：RX1217sas, DX517, E10G18-T2, M2D20"
+    return False, "产品型号格式不正确。正确格式示例：RX1217sas, DX517, E25G30-F2, E10G18-T2, M2D20"
 
 def get_product_specs(model):
     # 首先验证产品型号格式

@@ -1,6 +1,6 @@
 # 群晖产品规格查询工具
 
-[![Version](https://img.shields.io/badge/Version-V1.1-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1.1)
+[![Version](https://img.shields.io/badge/Version-V1.2-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1.2)
 [![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -17,14 +17,23 @@
 
 ## 支持的产品型号
 
-支持所有群晖 NAS 和 SAN 产品型号，包括但不限于：
+支持所有群晖产品型号，包括：
 - DS 系列：如 DS3622xs+, DS220+, DS620slim
 - RS 系列：如 RS4021xs+, RS3621RPxs
 - FS 系列：如 FS6400
 - SA 系列：如 SA3610, SA3400D, SA3200D
 - UC 系列：如 UC3400, UC3200
+- RX/DX/FX 系列：如 RX1217sas, DX517, FX2421
+- PCIe 扩充卡：如 E10G18-T2, M2D20, FXC18
 
 ## 版本历史
+
+### V1.2 (2024-03-xx)
+- 🔧 修复产品规格页面URL格式问题
+- ✨ 统一所有产品的URL路径格式
+- 📊 优化规格数据提取逻辑
+- 🎯 添加版本信息显示
+- 🔄 增加对新格式PCIe扩充卡型号的支持（如 E25G30-F2）
 
 ### V1.1 (2024-03-xx)
 - ✨ 增加对更多产品型号的支持
