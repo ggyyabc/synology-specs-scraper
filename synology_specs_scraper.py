@@ -85,37 +85,20 @@ def format_worksheet(worksheet, df):
     # 设置标题行格式（第1行）
     title_cell = worksheet['A1']
     title_cell.font = Font(bold=True, size=12)
-    title_cell.alignment = Alignment(horizontal='right', vertical='center')
+    title_cell.alignment = Alignment(horizontal='right', vertical='center', wrap_text=True)
     
     # 设置列标题行格式（第2行）
     header_row = worksheet[2]
     for cell in header_row:
         cell.font = Font(bold=True)
         cell.fill = HEADER_FILL
-        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
         cell.border = NORMAL_BORDER
     
-    # 获取每列的最大内容长度
-    max_lengths = {'A': 0, 'B': 0, 'C': 0}
-    for row in worksheet.iter_rows(min_row=3, max_row=worksheet.max_row):
-        for idx, cell in enumerate(row):
-            if cell.value:
-                col_letter = get_column_letter(idx + 1)
-                content_length = len(str(cell.value))
-                max_lengths[col_letter] = max(max_lengths[col_letter], content_length)
-    
-    # 计算并设置列宽 (考虑A4纸宽度约为85个字符)
-    total_width = 85  # A4纸宽度（以字符为单位）
-    
-    # 根据内容长度计算每列的相对宽度
-    a_width = min(max_lengths['A'] * 1.2, 15)  # 大类列宽
-    b_width = min(max_lengths['B'] * 1.2, 25)  # 规格项列宽
-    c_width = total_width - a_width - b_width   # 剩余宽度给规格值列
-    
-    # 设置列宽
-    worksheet.column_dimensions['A'].width = a_width
-    worksheet.column_dimensions['B'].width = b_width
-    worksheet.column_dimensions['C'].width = c_width
+    # 设置固定列宽
+    worksheet.column_dimensions['A'].width = 9   # 大类列
+    worksheet.column_dimensions['B'].width = 30  # 规格项列
+    worksheet.column_dimensions['C'].width = 73  # 规格值列
     
     # 获取所有大类（第一列非空值）
     categories = []
@@ -135,11 +118,11 @@ def format_worksheet(worksheet, df):
             last_category = cell_value
             # 设置大类单元格格式
             row[0].font = Font(bold=True)
-            row[0].alignment = Alignment(horizontal='left', vertical='center')
+            row[0].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
         else:
             # 对于大类下的子项，缩进第二列
             if row[1].value:
-                row[1].alignment = Alignment(horizontal='left', vertical='center', indent=1)
+                row[1].alignment = Alignment(horizontal='left', vertical='center', indent=1, wrap_text=True)
         
         # 设置规格值列的对齐方式和自动换行
         if row[2].value:
@@ -148,6 +131,17 @@ def format_worksheet(worksheet, df):
         # 添加边框
         for cell in row:
             cell.border = NORMAL_BORDER
+            # 确保所有单元格都启用自动换行
+            if cell.alignment:
+                new_alignment = Alignment(
+                    horizontal=cell.alignment.horizontal,
+                    vertical=cell.alignment.vertical,
+                    wrap_text=True,
+                    indent=cell.alignment.indent
+                )
+                cell.alignment = new_alignment
+            else:
+                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
         
         # 设置行高
         row_height = calculate_row_height(row)
