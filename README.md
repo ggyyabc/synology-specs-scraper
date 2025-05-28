@@ -1,6 +1,6 @@
 # 群晖产品规格查询工具
 
-[![Version](https://img.shields.io/badge/Version-V1-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1)
+[![Version](https://img.shields.io/badge/Version-V1.1-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1.1)
 [![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -14,6 +14,34 @@
 - ⚡ 简单易用的图形界面
 - 💾 自动保存查询结果
 - ⚠️ 重复查询时会提示确认
+
+## 支持的产品型号
+
+支持所有群晖 NAS 和 SAN 产品型号，包括但不限于：
+- DS 系列：如 DS3622xs+, DS220+, DS620slim
+- RS 系列：如 RS4021xs+, RS3621RPxs
+- FS 系列：如 FS6400
+- SA 系列：如 SA3610, SA3400D, SA3200D
+- UC 系列：如 UC3400, UC3200
+
+## 版本历史
+
+### V1.1 (2024-03-xx)
+- ✨ 增加对更多产品型号的支持
+  - 添加对 RPxs 后缀型号的支持（如 RS3621RPxs）
+  - 添加对 slim 后缀型号的支持（如 DS620slim）
+  - 添加对 UC 系列产品的支持（如 UC3400）
+  - 添加对 D 后缀型号的支持（如 SA3400D）
+- 📝 更新文档，添加支持的产品型号列表
+
+### V1.0 (2024-03-xx)
+- 🎉 首次发布
+- ✨ 基本功能实现
+  - 产品规格自动抓取
+  - Excel 格式保存
+  - 图形界面操作
+  - 查询结果自动保存
+  - 重复查询确认提示
 
 ## 首次使用安装步骤
 

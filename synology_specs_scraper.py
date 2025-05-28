@@ -12,12 +12,22 @@ EXCEL_FILE = "群晖产品资料汇总.xlsx"
 
 def validate_model_number(model):
     """验证产品型号格式
-    典型的群晖产品型号格式如：DS3622xs+, RS4021xs+, DS220+, FS6400
+    支持的格式示例：
+    - DS3622xs+
+    - RS4021xs+
+    - DS220+
+    - FS6400
+    - RS3621RPxs
+    - SA3610
+    - DS620slim
+    - UC3400
+    - SA3400D
+    - SA3200D
     """
-    # 基本格式检查 - 放宽格式限制
-    pattern = r'^(DS|RS|FS|SA|HD|DVA)\d{3,4}(\+|xs\+|xs|j|play|II)*$'
+    # 基本格式检查 - 支持更多格式
+    pattern = r'^(DS|RS|FS|SA|HD|DVA|UC)\d{3,4}(RP)?(xs\+|xs|\+|slim|play|j|II|D)?$'
     if not re.match(pattern, model):
-        return False, "产品型号格式不正确。正确格式示例：DS3622xs+, RS4021xs+, DS220+, FS6400"
+        return False, "产品型号格式不正确。正确格式示例：DS3622xs+, RS3621RPxs, DS620slim, UC3400, SA3400D"
     return True, ""
 
 def get_product_specs(model):
