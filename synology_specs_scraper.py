@@ -5,7 +5,8 @@ import tkinter as tk
 from tkinter import messagebox
 import os
 import re
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
 
 # 版本信息
@@ -13,6 +14,12 @@ __version__ = "1.2"
 __author__ = "Claude"
 
 EXCEL_FILE = "群晖产品资料汇总.xlsx"
+
+# 定义样式常量
+HEADER_FILL = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+ALT_ROW_FILL = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
+BORDER_STYLE = Side(style='thin', color="000000")
+NORMAL_BORDER = Border(left=BORDER_STYLE, right=BORDER_STYLE, top=BORDER_STYLE, bottom=BORDER_STYLE)
 
 def validate_model_number(model):
     """验证产品型号格式
@@ -44,6 +51,59 @@ def validate_model_number(model):
             return True, ""
     
     return False, "产品型号格式不正确。正确格式示例：RX1217sas, DX517, E25G30-F2, E10G18-T2, M2D20"
+
+def format_worksheet(worksheet, df):
+    """设置工作表格式"""
+    # 设置标题行格式（第1行）
+    title_cell = worksheet['A1']
+    title_cell.font = Font(bold=True, size=12)
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # 设置列标题行格式（第2行）
+    header_row = worksheet[2]
+    for cell in header_row:
+        cell.font = Font(bold=True)
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = NORMAL_BORDER
+    
+    # 设置数据行格式
+    for row_idx, row in enumerate(worksheet.iter_rows(min_row=3, max_row=worksheet.max_row), start=3):
+        # 交替行底色
+        fill = ALT_ROW_FILL if row_idx % 2 == 0 else None
+        
+        for col_idx, cell in enumerate(row):
+            # 设置边框
+            cell.border = NORMAL_BORDER
+            
+            # 设置填充色
+            if fill:
+                cell.fill = fill
+            
+            # 设置对齐方式
+            if col_idx == 0:  # 规格项列
+                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+            else:  # 规格值和技术指标列
+                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    
+    # 调整列宽
+    for col in worksheet.columns:
+        max_length = 0
+        column = col[0].column_letter  # 获取列字母
+        
+        # 获取该列所有单元格的内容长度
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        
+        # 设置列宽（考虑中文字符）
+        adjusted_width = max_length * 1.5
+        adjusted_width = min(adjusted_width, 50)  # 设置最大列宽
+        adjusted_width = max(adjusted_width, 15)  # 设置最小列宽
+        worksheet.column_dimensions[column].width = adjusted_width
 
 def get_product_specs(model):
     # 首先验证产品型号格式
@@ -147,15 +207,8 @@ def get_product_specs(model):
                     worksheet.merge_cells('A1:C1')
                     worksheet['A1'] = f'群晖{model}规格'
                     
-                    # 创建粗体字体样式
-                    bold_font = Font(bold=True)
-                    
-                    # 设置标题行格式（第1行）
-                    worksheet['A1'].font = bold_font
-                    
-                    # 设置列标题行格式（第2行）
-                    for cell in worksheet[2]:
-                        cell.font = bold_font
+                    # 应用格式化
+                    format_worksheet(worksheet, df)
             else:
                 with pd.ExcelWriter(EXCEL_FILE) as writer:
                     # 添加一个空行作为第一行，从第二行开始写入数据
@@ -167,15 +220,8 @@ def get_product_specs(model):
                     worksheet.merge_cells('A1:C1')
                     worksheet['A1'] = f'群晖{model}规格'
                     
-                    # 创建粗体字体样式
-                    bold_font = Font(bold=True)
-                    
-                    # 设置标题行格式（第1行）
-                    worksheet['A1'].font = bold_font
-                    
-                    # 设置列标题行格式（第2行）
-                    for cell in worksheet[2]:
-                        cell.font = bold_font
+                    # 应用格式化
+                    format_worksheet(worksheet, df)
                     
         except Exception as e:
             return False, f"保存Excel文件时出错: {str(e)}"
