@@ -87,17 +87,16 @@ def format_worksheet(worksheet, df):
                 cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
     
     # 调整列宽
-    for col in worksheet.columns:
+    for idx, column in enumerate(['A', 'B', 'C']):  # 固定处理三列：规格项、规格值、技术指标
         max_length = 0
-        column = col[0].column_letter  # 获取列字母
-        
-        # 获取该列所有单元格的内容长度
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
+        # 跳过第一行（合并的标题行）
+        for cell in worksheet[column][1:]:  # 从第二行开始
+            if cell.value:  # 只处理有值的单元格
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
         
         # 设置列宽（考虑中文字符）
         adjusted_width = max_length * 1.5
