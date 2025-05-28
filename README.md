@@ -1,6 +1,19 @@
 # 群晖产品规格查询工具
 
+[![Version](https://img.shields.io/badge/Version-V1-blue.svg)](https://github.com/yourusername/synology-specs-scraper/releases/tag/V1)
+[![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 这是一个用于从群晖官网获取产品硬件规格信息的工具。它可以自动抓取指定产品型号的硬件规格，并将数据保存到Excel文件中。
+
+## 功能特点
+
+- 🔍 自动从群晖官网获取产品规格信息
+- 📊 将数据保存为结构化的Excel格式
+- 🔄 支持批量查询多个产品型号
+- ⚡ 简单易用的图形界面
+- 💾 自动保存查询结果
+- ⚠️ 重复查询时会提示确认
 
 ## 首次使用安装步骤
 
@@ -78,4 +91,18 @@
 
 3. 如果需要重新安装依赖：
    - 删除 `venv` 目录
-   - 重新运行 `./install_dependencies.sh` 
+   - 重新运行 `./install_dependencies.sh`
+
+## 许可证
+
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+
+## 贡献
+
+欢迎提交问题反馈和功能建议！
+
+1. Fork 本仓库
+2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交你的改动 (`git commit -m '添加某个特性'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建一个 Pull Request 
