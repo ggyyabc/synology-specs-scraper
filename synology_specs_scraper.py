@@ -51,6 +51,35 @@ def validate_model_number(model):
     
     return False, "产品型号格式不正确。正确格式示例：RX1217sas, DX517, E25G30-F2, E10G18-T2, M2D20"
 
+def calculate_row_height(row):
+    """计算行高
+    根据单元格内容和换行数量计算合适的行高
+    标准行高为15，每多一行增加15
+    """
+    max_lines = 1
+    for cell in row:
+        if cell.value:
+            # 计算文本换行后的行数
+            text = str(cell.value)
+            # 获取单元格宽度（以字符为单位）
+            col_width = cell.parent.column_dimensions[get_column_letter(cell.column)].width
+            
+            # 如果启用了自动换行，计算实际行数
+            if cell.alignment and cell.alignment.wrap_text:
+                # 预估每行能容纳的字符数（考虑中文字符）
+                chars_per_line = int(col_width / 1.5)  # 假设每个中文字符宽度为1.5
+                if chars_per_line > 0:
+                    # 计算需要的行数
+                    lines = len(text) / chars_per_line
+                    max_lines = max(max_lines, int(lines) + 1)
+            else:
+                # 未启用自动换行时，只计算手动换行符
+                lines = text.count('\n') + 1
+                max_lines = max(max_lines, lines)
+    
+    # 基础行高15，每行增加15
+    return max(20, 15 * max_lines)
+
 def format_worksheet(worksheet, df):
     """设置工作表格式"""
     # 设置标题行格式（第1行）
@@ -75,11 +104,29 @@ def format_worksheet(worksheet, df):
                 content_length = len(str(cell.value))
                 max_lengths[col_letter] = max(max_lengths[col_letter], content_length)
     
+    # 计算并设置列宽 (考虑A4纸宽度约为85个字符)
+    total_width = 85  # A4纸宽度（以字符为单位）
+    
+    # 根据内容长度计算每列的相对宽度
+    a_width = min(max_lengths['A'] * 1.2, 15)  # 大类列宽
+    b_width = min(max_lengths['B'] * 1.2, 25)  # 规格项列宽
+    c_width = total_width - a_width - b_width   # 剩余宽度给规格值列
+    
+    # 设置列宽
+    worksheet.column_dimensions['A'].width = a_width
+    worksheet.column_dimensions['B'].width = b_width
+    worksheet.column_dimensions['C'].width = c_width
+    
     # 获取所有大类（第一列非空值）
     categories = []
     last_category = None
     category_rows = []  # 存储每个大类的起始行号
     
+    # 设置标题行高
+    worksheet.row_dimensions[1].height = 25
+    worksheet.row_dimensions[2].height = 20  # 表头行高固定
+    
+    # 处理数据行
     for row_idx, row in enumerate(worksheet.iter_rows(min_row=3, max_row=worksheet.max_row), start=3):
         cell_value = row[0].value
         if cell_value:  # 如果第一列有值，说明是新的大类
@@ -101,21 +148,10 @@ def format_worksheet(worksheet, df):
         # 添加边框
         for cell in row:
             cell.border = NORMAL_BORDER
-    
-    # 计算并设置列宽 (考虑A4纸宽度约为85个字符)
-    # A4纸宽度约为210mm，Excel中1个字符宽度约为2.47mm
-    # 因此A4纸可容纳约85个字符
-    total_width = 85  # A4纸宽度（以字符为单位）
-    
-    # 根据内容长度计算每列的相对宽度
-    a_width = min(max_lengths['A'] * 1.2, 15)  # 大类列宽
-    b_width = min(max_lengths['B'] * 1.2, 25)  # 规格项列宽
-    c_width = total_width - a_width - b_width   # 剩余宽度给规格值列
-    
-    # 设置列宽
-    worksheet.column_dimensions['A'].width = a_width
-    worksheet.column_dimensions['B'].width = b_width
-    worksheet.column_dimensions['C'].width = c_width
+        
+        # 设置行高
+        row_height = calculate_row_height(row)
+        worksheet.row_dimensions[row_idx].height = row_height
     
     # 设置打印相关属性
     worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
@@ -123,11 +159,6 @@ def format_worksheet(worksheet, df):
     worksheet.page_setup.fitToPage = True
     worksheet.page_setup.fitToHeight = False
     worksheet.page_setup.fitToWidth = 1
-    
-    # 设置行高
-    worksheet.row_dimensions[1].height = 25  # 标题行高
-    for row in range(2, worksheet.max_row + 1):
-        worksheet.row_dimensions[row].height = 20  # 数据行高
 
 def get_product_specs(model):
     # 首先验证产品型号格式
